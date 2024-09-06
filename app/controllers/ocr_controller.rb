@@ -1,5 +1,4 @@
 class OcrController < ApplicationController
-  protect_from_forgery with: :null_session
 
   def create
     Rails.logger.info("Received params: #{params.inspect}")
