@@ -1,15 +1,14 @@
 class OcrController < ApplicationController
-  def new
-  end
+  protect_from_forgery with: :null_session
 
   def create
     uploaded_file = params[:image]
     if uploaded_file
       response = ocr_space_request(uploaded_file)
       @text = parse_ocr_response(response)
+      render :show
     else
-      flash[:alert] = "Please upload a file"
-      redirect_to new_ocr_path
+      render json: { error: "Please upload a File" }, status: :bad_request
     end
   end
 
