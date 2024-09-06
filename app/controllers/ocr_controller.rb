@@ -1,29 +1,39 @@
 class OcrController < ApplicationController
-  def upload
-    #Save uploaded file
-    uploaded_file = params[:file]
-    file_path = Rails.root.join('tmp', uploaded_file.original_filename)
+  def new
+  end
 
-    File.open(file_path, 'wb') do |file|
-      file.write(uploaded_file.read)
+  def create
+    uploaded_file = params[:image]
+    if uploaded_file
+      response = ocr_space_request(uploaded_file)
+      @text = parse_ocr_response(response)
+    else
+      flash[:alert] = "Please upload a file"
+      redirect_to new_ocr_path
     end
-
-    #perform OCR
-    text = perform_ocr(file_path)
-
-    #send extracted text as JSON response
-    render json: {text: text}
-  ensure
-    #clean up temporary file
-    File.delete(file_path) if File.exist?(file_path)
   end
 
   private
 
-  def perform_ocr(file_path)
-    #initialize Tesseract engine
-    engine = Tesseract::Engine.new
-    #process the image
-    engine.text_for(file_path)
+  def ocr_space_request(file)
+    api_key = K82778956688957
+    response = HTTParty.post(
+      "https://api.ocr.space/parse/image",
+      body: {
+        apikey: api_key,
+        isOverlayRequired: false
+      },
+      files: {
+        "file" => file
+      }
+    )
+    response.parsed_response
+  end
+
+  def parse_ocr_response(response)
+    parsed_results = response["ParsedResults"]
+    return "No Text found" if parsed_results.empty?
+
+    parsed_results.map { |result| result["ParsedText"] }.join("/n")
   end
 end
