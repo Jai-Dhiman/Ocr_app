@@ -2,6 +2,8 @@ class OcrController < ApplicationController
   protect_from_forgery with: :null_session
 
   def create
+    Rails.logger.info("Received params: #{params.inspect}")
+    
     image_param = params[:image]
 
     if image_param.present?
