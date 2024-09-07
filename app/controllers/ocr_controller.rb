@@ -1,6 +1,7 @@
 class OcrController < ApplicationController
 
   def create
+    Rails.logger.debug("Using API Key: #{ENV['OCR_API_KEY']}")
     Rails.logger.info("Received params: #{params.inspect}")
     
     image_param = params[:image]
@@ -33,6 +34,7 @@ class OcrController < ApplicationController
         "file" => file
       }
     )
+    Rails.logger.debug("OCR Service Response: #{response.body}")
     response.parsed_response
   end
 
@@ -46,16 +48,21 @@ class OcrController < ApplicationController
         url: url
       },
     )
+    Rails.logger.debug("OCR Service Response: #{response.body}")
     response.parsed_response
   end
 
   def parse_ocr_response(response)
+    Rails.logger.debug("Parsing OCR response: #{response.inspect}")
     return "No response from OCR service" if response.nil?
 
     parsed_results = response["ParsedResults"]
-    return "No Text found" if parsed_results.nil? || parsed_results.empty?
+    Rails.logger.debug("Parsed Results: #{parsed_results.inspect}")
+    return "No Text found in the image" if parsed_results.nil? || parsed_results.empty?
 
-    parsed_results.map { |result| result["ParsedText"] }.join("\n")
+    text = parsed_results.map { |result| result["ParsedText"] }.join("\n")
+    Rails.logger.debug("Extracted Text: #{text}")
+    text
   rescue => e
     Rails.logger.error("Error parsing OCR response: #{e.message}")
     "Error occured while processing the image"
