@@ -13,7 +13,7 @@ class OcrController < ApplicationController
       end
 
       @text = parse_ocr_response(response)
-      render :show
+      render json: {text: @text}, status: :ok
     else
       render json: { error: "Please upload a File or image URL" }, status: :bad_request
     end
@@ -50,9 +50,14 @@ class OcrController < ApplicationController
   end
 
   def parse_ocr_response(response)
+    return "No response from OCR service" if response.nil?
+
     parsed_results = response["ParsedResults"]
-    return "No Text found" if parsed_results.empty?
+    return "No Text found" if parsed_results.nil? || parsed_results.empty?
 
     parsed_results.map { |result| result["ParsedText"] }.join("\n")
+  rescue => e
+    Rails.logger.error("Error parsing OCR response: #{e.message}")
+    "Error occured while processing the image"
   end
 end
