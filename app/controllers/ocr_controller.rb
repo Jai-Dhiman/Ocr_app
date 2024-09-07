@@ -21,8 +21,8 @@ class OcrController < ApplicationController
 
   private
 
-  def ocr_space_request(file)
-    api_key = K82778956688957
+  def ocr_space_request_from_file(file)
+    api_key = ENV["OCR_API_KEY"]
     response = HTTParty.post(
       "https://api.ocr.space/parse/image",
       body: {
@@ -37,7 +37,7 @@ class OcrController < ApplicationController
   end
 
   def ocr_space_request_from_url(url)
-    api_key = K82778956688957
+    api_key = ENV["OCR_API_KEY"]
     response = HTTParty.post(
       "https://api.ocr.space/parse/image",
       body: {
@@ -53,6 +53,6 @@ class OcrController < ApplicationController
     parsed_results = response["ParsedResults"]
     return "No Text found" if parsed_results.empty?
 
-    parsed_results.map { |result| result["ParsedText"] }.join("/n")
+    parsed_results.map { |result| result["ParsedText"] }.join("\n")
   end
 end
