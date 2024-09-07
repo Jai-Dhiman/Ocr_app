@@ -45,7 +45,8 @@ class OcrController < ApplicationController
       body: {
         apikey: api_key,
         isOverlayRequired: false,
-        url: url
+        url: url,
+        filetype: 'PNG'
       },
     )
     Rails.logger.debug("OCR Service Response: #{response.body}")
