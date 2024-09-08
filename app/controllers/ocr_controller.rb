@@ -14,8 +14,11 @@ class OcrController < ApplicationController
 
       if processed_image.is_a?(String) && processed_image =~ URI::DEFAULT_PARSER.make_regexp
         response = ocr_space_request_from_url(processed_image)
-      else
+      elsif processed_image.is_a?(File)
         response = ocr_space_request_from_file(processed_image)
+      else
+        render json: (error: "Failed to process image"), status: :unprocessable_entity
+        return
       end
 
       @text = parse_ocr_response(response)
@@ -43,7 +46,7 @@ class OcrController < ApplicationController
       temp_file
     rescue => e
       Rails.logger.error("Error processing image: #{e.message}")
-      nil
+      image_param
     end
   end
 
