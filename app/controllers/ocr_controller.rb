@@ -12,24 +12,27 @@ class OcrController < ApplicationController
     if image_param.present?
       begin
       processed_image = process_image(image_param)
+      Rails.logger.info("Processed image type: #{processed_image.class}")
 
-      if processed_image.is_a?(String) && processed_image =~ URI::DEFAULT_PARSER.make_regexp
-        Rails.logger.info("Processing image from URL: #{processed_image}")
-        response = ocr_space_request_from_url(processed_image)
-      elsif processed_image.is_a?(File)
-        Rails.logger.info("Processing image from file")
-        response = ocr_space_request_from_file(processed_image)
-      else
-        raise StandardError, "Unexpected result from process_image: #{processed_image.class}"
+        if processed_image.is_a?(Tempfile)
+          Rails.logger.info("Processing image from temporary file: #{processed_image.path}")
+          response = ocr_space_request_from_file(processed_image)
+        elsif processed_image.is_a?(String) && processed_image =~ URI::DEFAULT_PARSER.make_regexp
+          Rails.logger.info("Processing image from URL: #{processed_image}")
+          response = ocr_space_request_from_url(processed_image)
+        else
+          raise StandardError, "Unexpected result from process_image: #{processed_image.class}"
+        end
+
+        @text = parse_ocr_response(response)
+        render json: {text: @text}, status: :ok
+      rescue => e
+        Rails.logger.error("Error in create action: #{e.message}")
+        Rails.logger.error(e.backtrace.join("\n"))
+        render json: { error: "Failed to process image: #{e.message}"}, status: :unprocessable_entity
+      ensure
+        processed_image.close if processed_image.is_a?(Tempfile)
       end
-
-      @text = parse_ocr_response(response)
-      render json: {text: @text}, status: :ok
-    rescue => e
-      Rails.logger.error("Error in create action: #{e.message}")
-      Rails.logger.error(e.backtrace.join("\n"))
-      render json: { error: "Failed to process image: #{e.message}"}, status: :unprocessable_entity
-    end
     else
       render json: { error: "Please upload a File or image URL" }, status: :bad_request
     end
@@ -49,8 +52,10 @@ class OcrController < ApplicationController
       end
 
       Rails.logger.info("Image opened successfully")
+
       image.resize '1024x1024>'
       Rails.logger.info("Image resized")
+
       image.quality '85'
       Rails.logger.info("Image compressed")
 
@@ -58,6 +63,7 @@ class OcrController < ApplicationController
       image.write(temp_file.path)
       Rails.logger.info("Image saved to temporary file: #{temp_file.path}")
 
+      temp_file.rewind
       temp_file
     rescue => e
       Rails.logger.error("Error processing image: #{e.message}")
