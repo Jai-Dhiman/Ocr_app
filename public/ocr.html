@@ -46,12 +46,25 @@
       background-color: #45a049;
     }
 
-    #result {
+    #result,
+    #imagePreview {
       margin-top: 20px;
       padding: 10px;
       border: 1px solid #ddd;
       border-radius: 4px;
       background-color: #f9f9f9;
+    }
+
+    #previewImage {
+      max-width: 100%;
+      max-height: 300px;
+      display: block;
+      margin: 10px auto;
+    }
+
+    .error {
+      color: red;
+      font-style: italic;
     }
   </style>
 </head>
@@ -59,15 +72,45 @@
 <body>
   <div class="container">
     <h1>OCR Image to Text</h1>
-    <input type="text" id="imageUrl" placeholder="Enter image URL">
+    <input type="text" id="imageUrl" placeholder="Enter image URL" oninput="updatePreview()">
     <button onclick="performOCR()">Extract Text</button>
+    <div id="imagePreview">
+      <h3>Image Preview:</h3>
+      <img id="previewImage" src="" alt="Preview will appear here" style="display: none;">
+      <p id="previewError" class="error"></p>
+    </div>
     <div id="result"></div>
   </div>
 
   <script>
+    function updatePreview() {
+      const imageUrl = document.getElementById('imageUrl').value;
+      const previewImage = document.getElementById('previewImage');
+      const previewError = document.getElementById('previewError');
+
+      if (imageUrl) {
+        previewImage.src = imageUrl;
+        previewImage.style.display = 'block';
+        previewError.textContent = '';
+
+        previewImage.onerror = function () {
+          previewImage.style.display = 'none';
+          previewError.textContent = 'Unable to load image. Please check the URL.';
+        };
+      } else {
+        previewImage.style.display = 'none';
+        previewError.textContent = '';
+      }
+    }
+
     function performOCR() {
       const imageUrl = document.getElementById('imageUrl').value;
       const resultDiv = document.getElementById('result');
+
+      if (!imageUrl) {
+        resultDiv.innerHTML = '<p class="error">Please enter an image URL</p>';
+        return;
+      }
 
       resultDiv.innerHTML = 'Processing...';
 
@@ -83,11 +126,11 @@
           if (data.text) {
             resultDiv.innerHTML = `<h3>Extracted Text:</h3><p>${data.text}</p>`;
           } else if (data.error) {
-            resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+            resultDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
           }
         })
         .catch(error => {
-          resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+          resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
         });
     }
   </script>
