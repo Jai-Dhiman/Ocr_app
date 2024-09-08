@@ -1,6 +1,4 @@
 class OcrController < ApplicationController
-  skip_before_action :verify_authenticity_token, only: [:create]
-
   require "mini_magick"
   require "open-uri"
 
@@ -12,8 +10,8 @@ class OcrController < ApplicationController
 
     if image_param.present?
       begin
-      processed_image = process_image(image_param)
-      Rails.logger.info("Processed image type: #{processed_image.class}")
+        processed_image = process_image(image_param)
+        Rails.logger.info("Processed image type: #{processed_image.class}")
 
         if processed_image.is_a?(Tempfile)
           Rails.logger.info("Processing image from temporary file: #{processed_image.path}")
@@ -27,6 +25,9 @@ class OcrController < ApplicationController
 
         @text = parse_ocr_response(response)
         render json: {text: @text}, status: :ok
+      rescue OpenURI::HTTPError => e
+        Rails.logger.error("Error accessing URL: #{e.message}")
+        render json: { error: "Failed to access the image URL." }, status: :bad_request
       rescue => e
         Rails.logger.error("Error in create action: #{e.message}")
         Rails.logger.error(e.backtrace.join("\n"))
@@ -81,8 +82,7 @@ class OcrController < ApplicationController
       apikey: api_key,
       isOverlayRequired: false,
       file: File.open(file.path, 'rb'),
-      filetype: 'JPG',
-      OCREngine: 2
+      filetype: 'JPG'
     }
     
     Rails.logger.info("OCR request body: #{request_body.inspect}")
@@ -105,8 +105,7 @@ class OcrController < ApplicationController
       apikey: api_key,
       isOverlayRequired: false,
       url: url,
-      filetype: 'JPG',
-      OCREngine: 2
+      filetype: 'JPG'
     }
     
     Rails.logger.info("OCR request body: #{request_body.inspect}")
