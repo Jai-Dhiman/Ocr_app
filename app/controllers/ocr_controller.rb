@@ -1,5 +1,8 @@
 class OcrController < ApplicationController
 
+  require "mini_magick"
+  require "open-uri"
+
   def create
     Rails.logger.debug("Using API Key: #{ENV['OCR_API_KEY']}")
     Rails.logger.info("Received params: #{params.inspect}")
@@ -7,10 +10,12 @@ class OcrController < ApplicationController
     image_param = params[:image]
 
     if image_param.present?
-      if image_param =~ URI::DEFAULT_PARSER.make_regexp
-        response = ocr_space_request_from_url(image_param)
+      processed_image = process_image(image_param)
+
+      if processed_image,is_a?(String) && processed_image =~ URI::DEFAULT_PARSER.make_regexp
+        response = ocr_space_request_from_url(processed_image)
       else
-        response = ocr_space_request_from_file(image_param)
+        response = ocr_space_request_from_file(processed_image)
       end
 
       @text = parse_ocr_response(response)
@@ -21,6 +26,26 @@ class OcrController < ApplicationController
   end
 
   private
+
+  def process_image(image_param)
+    begin
+      if image_param.is_a?(String) && image_param =~ URI::DEFAULT_PARSER.make_regexp
+        image = MiniMagick::Image.open(image_param)
+      else
+        image = MiniMagick::Image.read(image_param.read)
+      end
+
+      image.resize '1024x1024>'
+      image.quality '85'
+      temp_file = Tempfile.new(['processed', '.jpg'])
+      image.write(temp_file.path)
+
+      temp_file
+    rescue => e
+      Rails.logger.error("Error processing image: #{e.message}")
+      nil
+    end
+  end
 
   def ocr_space_request_from_file(file)
     api_key = ENV["OCR_API_KEY"]
