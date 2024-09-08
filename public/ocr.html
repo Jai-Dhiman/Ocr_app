@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCR Image to Text</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #45a049;
+    }
+
+    #result {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>OCR Image to Text</h1>
+    <input type="text" id="imageUrl" placeholder="Enter image URL">
+    <button onclick="performOCR()">Extract Text</button>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    function performOCR() {
+      const imageUrl = document.getElementById('imageUrl').value;
+      const resultDiv = document.getElementById('result');
+
+      resultDiv.innerHTML = 'Processing...';
+
+      fetch('http://localhost:3000/ocr/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `image=${encodeURIComponent(imageUrl)}`
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.text) {
+            resultDiv.innerHTML = `<h3>Extracted Text:</h3><p>${data.text}</p>`;
+          } else if (data.error) {
+            resultDiv.innerHTML = `<p>Error: ${data.error}</p>`;
+          }
+        })
+        .catch(error => {
+          resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+        });
+    }
+  </script>
+</body>
+
+</html>
