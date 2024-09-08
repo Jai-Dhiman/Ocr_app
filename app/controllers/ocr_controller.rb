@@ -10,19 +10,26 @@ class OcrController < ApplicationController
     image_param = params[:image]
 
     if image_param.present?
+      begin
       processed_image = process_image(image_param)
 
       if processed_image.is_a?(String) && processed_image =~ URI::DEFAULT_PARSER.make_regexp
+        Rails.logger.info("Processing image from URL: #{processed_image}")
         response = ocr_space_request_from_url(processed_image)
       elsif processed_image.is_a?(File)
+        Rails.logger.info("Processing image from file")
         response = ocr_space_request_from_file(processed_image)
       else
-        render json: (error: "Failed to process image"), status: :unprocessable_entity
-        return
+        raise StandardError, "Unexpected result from process_image: #{processed_image.class}"
       end
 
       @text = parse_ocr_response(response)
       render json: {text: @text}, status: :ok
+    rescue => e
+      Rails.logger.error("Error in create action: #{e.message}")
+      Rails.logger.error(e.backtrace.join("\n"))
+      render json: { error: "Failed to process image: #{e.message}"}, status: :unprocessable_entity
+    end
     else
       render json: { error: "Please upload a File or image URL" }, status: :bad_request
     end
@@ -31,27 +38,37 @@ class OcrController < ApplicationController
   private
 
   def process_image(image_param)
+    Rails.logger.info("Starting image processing")
     begin
       if image_param.is_a?(String) && image_param =~ URI::DEFAULT_PARSER.make_regexp
+        Rails.logger.info("Processing URL: #{image_param}")
         image = MiniMagick::Image.open(image_param)
       else
+        Rails.logger.info("Processing uploaded file")
         image = MiniMagick::Image.read(image_param.read)
       end
 
+      Rails.logger.info("Image opened successfully")
       image.resize '1024x1024>'
+      Rails.logger.info("Image resized")
       image.quality '85'
+      Rails.logger.info("Image compressed")
+
       temp_file = Tempfile.new(['processed', '.jpg'])
       image.write(temp_file.path)
+      Rails.logger.info("Image saved to temporary file: #{temp_file.path}")
 
       temp_file
     rescue => e
       Rails.logger.error("Error processing image: #{e.message}")
-      image_param
+      Rails.logger.error(e.backtrace.join("\n"))
+      raise e
     end
   end
 
   def ocr_space_request_from_file(file)
     api_key = ENV["OCR_API_KEY"]
+    Rails.logger.info("Sending file to OCR service")
     response = HTTParty.post(
       "https://api.ocr.space/parse/image",
       body: {
@@ -68,13 +85,14 @@ class OcrController < ApplicationController
 
   def ocr_space_request_from_url(url)
     api_key = ENV["OCR_API_KEY"]
+    Rails.logger.info("Sending URL to OCR service: #{url}")
     response = HTTParty.post(
       "https://api.ocr.space/parse/image",
       body: {
         apikey: api_key,
         isOverlayRequired: false,
         url: url,
-        filetype: 'PNG'
+        filetype: 'JPG'
       },
     )
     Rails.logger.debug("OCR Service Response: #{response.body}")
@@ -94,6 +112,7 @@ class OcrController < ApplicationController
     text
   rescue => e
     Rails.logger.error("Error parsing OCR response: #{e.message}")
+    Rails.logger.error(e.backtrace.join("\n"))
     "Error occured while processing the image"
   end
 end
