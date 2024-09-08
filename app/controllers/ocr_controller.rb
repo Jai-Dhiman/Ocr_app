@@ -74,17 +74,24 @@ class OcrController < ApplicationController
 
   def ocr_space_request_from_file(file)
     api_key = ENV["OCR_API_KEY"]
-    Rails.logger.info("Sending file to OCR service")
+    Rails.logger.info("Sending file to OCR service: #{file.path}")
+    
+    request_body = {
+      apikey: api_key,
+      isOverlayRequired: false,
+      file: File.open(file.path, 'rb'),
+      filetype: 'JPG',
+      OCREngine: 2
+    }
+    
+    Rails.logger.info("OCR request body: #{request_body.inspect}")
+    
     response = HTTParty.post(
       "https://api.ocr.space/parse/image",
-      body: {
-        apikey: api_key,
-        isOverlayRequired: false
-      },
-      files: {
-        "file" => file
-      }
+      multipart: true,
+      body: request_body
     )
+    
     Rails.logger.debug("OCR Service Response: #{response.body}")
     response.parsed_response
   end
@@ -92,15 +99,22 @@ class OcrController < ApplicationController
   def ocr_space_request_from_url(url)
     api_key = ENV["OCR_API_KEY"]
     Rails.logger.info("Sending URL to OCR service: #{url}")
+    
+    request_body = {
+      apikey: api_key,
+      isOverlayRequired: false,
+      url: url,
+      filetype: 'JPG',
+      OCREngine: 2
+    }
+    
+    Rails.logger.info("OCR request body: #{request_body.inspect}")
+    
     response = HTTParty.post(
       "https://api.ocr.space/parse/image",
-      body: {
-        apikey: api_key,
-        isOverlayRequired: false,
-        url: url,
-        filetype: 'JPG'
-      },
+      body: request_body
     )
+    
     Rails.logger.debug("OCR Service Response: #{response.body}")
     response.parsed_response
   end
