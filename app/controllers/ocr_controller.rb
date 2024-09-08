@@ -12,7 +12,7 @@ class OcrController < ApplicationController
     if image_param.present?
       processed_image = process_image(image_param)
 
-      if processed_image,is_a?(String) && processed_image =~ URI::DEFAULT_PARSER.make_regexp
+      if processed_image.is_a?(String) && processed_image =~ URI::DEFAULT_PARSER.make_regexp
         response = ocr_space_request_from_url(processed_image)
       else
         response = ocr_space_request_from_file(processed_image)

@@ -115,6 +115,7 @@ GEM
       net-pop
       net-smtp
     marcel (1.0.4)
+    mini_magick (5.0.1)
     mini_mime (1.1.5)
     minitest (5.25.1)
     msgpack (1.7.2)
@@ -216,6 +217,7 @@ DEPENDENCIES
   dotenv
   httparty
   jbuilder (~> 2.7)
+  mini_magick
   pg (~> 1.1)
   puma (>= 5.0)
   rails (~> 7.1.4)
